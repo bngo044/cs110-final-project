@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Eye, EyeOff, LoaderCircle, Repeat2 } from "lucide-react"
 
 import { Button } from "../components/ui/button"
@@ -15,6 +15,10 @@ function LoginPage() {
   const [message, setMessage] = useState("")
   const [isError, setIsError] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    document.title = "Login | CampusShare"
+  }, [])
 
   // Send the entered credentials to the existing Express login endpoint.
   async function handleSubmit(event) {
@@ -39,7 +43,7 @@ function LoginPage() {
 
       // Protected API requests will use this token after the user logs in.
       localStorage.setItem("campusShareToken", data.token)
-      setMessage(data.message)
+      setMessage(data.message || "Logged in successfully!")
 
       // The dashboard is still in the original frontend folder for now.
       window.setTimeout(() => {

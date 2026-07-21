@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { LoaderCircle, Repeat2 } from "lucide-react"
 
@@ -17,12 +17,17 @@ function RegisterPage() {
   // navigate() changes React pages without reloading the browser.
   const navigate = useNavigate()
 
+  useEffect(() => {
+  document.title = "Register | CampusShare"
+  }, [])
+
   // Store all registration inputs together because they are submitted together.
   const [form, setForm] = useState({
     name: "",
     username: "",
     email: "",
     password: "",
+    confirmPassword: "",
   })
 
   const [message, setMessage] = useState("")
@@ -46,15 +51,31 @@ function RegisterPage() {
 
     setMessage("")
     setIsError(false)
+
+    if (!form.email.toLowerCase().endsWith("ucr.edu")) {
+      setIsError(true)
+      setMessage("Please register with a valid ucr email address (@ucr.edu).")
+      return
+    }
+
+    if (form.password !== form.confirmPassword) {
+    setIsError(true)
+    setMessage("Passwords do not match.")
+    return
+    }
+
     setIsLoading(true)
 
     try {
+
+      const { name, username, email, password } = form
+
       const response = await fetch("/api/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ name, username, email, password }),
       })
 
       const data = await response.json()
@@ -63,7 +84,7 @@ function RegisterPage() {
         throw new Error(data.message || "Registration failed.")
       }
 
-      setMessage(data.message)
+      setMessage(data.message || "Account created successfully!")
 
       // After a successful registration, return to the login page.
       window.setTimeout(() => {
@@ -160,6 +181,20 @@ function RegisterPage() {
                   placeholder="Create a password"
                   required
                   value={form.password}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Confirm your password"
+                  required
+                  value={form.confirmPassword}
                   onChange={handleChange}
                 />
               </div>

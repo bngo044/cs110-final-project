@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Environment variables and secrets
 .env
@@ -16,6 +17,7 @@ pnpm-debug.log*
 # Test coverage and build output
 coverage/
 dist/
+dist-ssr/
 build/
 .cache/
 
@@ -30,4 +32,3 @@ build/
 # Operating system files
 .DS_Store
 Thumbs.db
-

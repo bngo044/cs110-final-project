@@ -5,3 +5,6 @@ CS110 Final Project
 2. npm install dotenv
 3.  create a .env file in backend folder
 4. in .env file, write MONGO_URI= and paste key
+
+
+Project Front End now changed use React + Vite + shadcn/ui

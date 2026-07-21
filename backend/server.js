@@ -1,8 +1,11 @@
 const express = require("express");
 const path = require("path");
 const { MongoClient } = require("mongodb");
-const createAuthRouter = require("./auth");
-const createItemRouter = require("./item-creation-form");
+const createAuth = require("./auth");
+const createItemRouter = require("./items");
+const createProfileRouter = require("./profiles");
+const createRequestRouter = require("./requests");
+const createReviewRouter = require("./reviews");
 
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
@@ -11,18 +14,40 @@ const PORT = 3000;
 const client = new MongoClient(process.env.MONGO_URI);
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../frontend")));
 
+// Serve the React login page and the API from the same localhost:3000 origin.
+app.use(express.static(path.join(__dirname, "../frontend-react/dist")));
+
+// Keep the existing HTML pages available while they are gradually moved to React.
+app.use("/legacy", express.static(path.join(__dirname, "../frontend")));
+
+/**
+ * Connects to MongoDB, creates indexes and API routes, then starts Express.
+ *
+ * @returns {Promise<void>}
+ */
 async function startServer() {
   try {
     await client.connect();
     const database = client.db("cs110_final_project");
     const users = database.collection("users");
     const items = database.collection("items");
-    await users.createIndex({ username: 1 }, { unique: true });
+    const sessions = database.collection("sessions");
+    const searches = database.collection("searches");
+    const requests = database.collection("requests");
+    const reviews = database.collection("reviews");
 
-    app.use("/api", createAuthRouter(users));
-    app.use("/api/items", createItemRouter(items));
+    await users.createIndex({ username: 1 }, { unique: true });
+    await sessions.createIndex({ token: 1 }, { unique: true });
+    await reviews.createIndex({ requestId: 1 }, { unique: true });
+
+    const { router: authRouter, requireAuth } = createAuth(users, sessions);
+
+    app.use("/api", authRouter);
+    app.use("/api/profile", createProfileRouter(users, items, requireAuth));
+    app.use("/api/items", createItemRouter(items, searches, requireAuth));
+    app.use("/api/requests", createRequestRouter(requests, items, requireAuth));
+    app.use("/api/reviews", createReviewRouter(reviews, requests, users, requireAuth));
 
     app.listen(PORT, () => {
       console.log(`App running at http://localhost:${PORT}`);

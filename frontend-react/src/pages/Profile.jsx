@@ -1,17 +1,29 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, LoaderCircle, Package, Clock, CheckCircle2, XCircle, Repeat2 } from "lucide-react"
+import { ArrowLeft, LoaderCircle, Package, Clock, CheckCircle2, XCircle, Repeat2, Camera, Mail, ShieldCheck } from "lucide-react"
 
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card"
 
 export default function ProfilePage() {
   const navigate = useNavigate()
+  const fileInputRef = useRef(null)
 
   const [myItems, setMyItems] = useState([])
   const [incomingRequests, setIncomingRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+
+  // Retrieve user info from local storage
+  const userString = localStorage.getItem("user")
+  const user = userString ? JSON.parse(userString) : null
+  const userName = user?.name || user?.username || localStorage.getItem("userName") || "Campus Student"
+  const userEmail = user?.email || "student@campus.edu"
+
+  // Profile picture state (supports base64, external URL, or local storage fallback)
+  const [profilePic, setProfilePic] = useState(
+    localStorage.getItem("userAvatar") || user?.avatarUrl || ""
+  )
 
   useEffect(() => {
     async function loadUserData() {
@@ -41,6 +53,26 @@ export default function ProfilePage() {
     }
     loadUserData()
   }, [navigate])
+
+  async function handleImageUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Preview image locally immediately via Base64 reader
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64Image = reader.result
+      setProfilePic(base64Image)
+
+      // Save to localStorage so Main dashboard navbar updates instantly
+      localStorage.setItem("userAvatar", base64Image)
+      if (user) {
+        const updatedUser = { ...user, avatarUrl: base64Image }
+        localStorage.setItem("user", JSON.stringify(updatedUser))
+      }
+    }
+    reader.readAsDataURL(file)
+  }
 
   async function handleStatusUpdate(requestId, status) {
     try {
@@ -79,6 +111,66 @@ export default function ProfilePage() {
         <Button variant="ghost" onClick={() => navigate("/main")} className="mb-6 gap-1.5 text-muted-foreground">
           <ArrowLeft className="size-4" /> Back to Dashboard
         </Button>
+
+        <Card className="mb-8 border bg-card">
+          <CardContent className="flex flex-col sm:flex-row items-center gap-6 p-6">
+            <div 
+              className="relative group cursor-pointer" 
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {profilePic ? (
+                <img
+                  src={profilePic}
+                  alt={userName}
+                  className="size-24 rounded-full object-cover border-2 border-primary/20 shadow-sm"
+                />
+              ) : (
+                <div className="flex size-24 items-center justify-center rounded-full bg-primary text-3xl font-bold text-primary-foreground shadow-sm">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+              )}
+
+              {/* Hover Overlay Camera Icon */}
+              <div
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Change Profile Photo"
+              >
+                <Camera className="size-6" />
+              </div>
+
+              {/* Hidden File Input */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
+
+            <div className="text-center sm:text-left space-y-1">
+              <h1 className="text-2xl font-bold">{userName}</h1>
+              <p className="text-xs text-muted-foreground flex items-center justify-center sm:justify-start gap-1">
+                <Mail className="size-3.5" /> {userEmail}
+              </p>
+              
+              <div className="pt-2 flex flex-wrap gap-2 justify-center sm:justify-start items-center">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+                  <ShieldCheck className="size-3" /> Active Lender
+                </span>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs gap-1.5 h-7 px-2.5"
+                >
+                  <Camera className="size-3" /> Change Photo
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <h1 className="text-3xl font-bold mb-8">My CampusShare Hub</h1>
 

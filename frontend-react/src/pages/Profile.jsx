@@ -142,7 +142,14 @@ export default function ProfilePage() {
                         <CardDescription>{item.category}</CardDescription>
                       </CardHeader>
                       <CardContent className="text-xs text-muted-foreground">
-                        📍 {item.pickupLocation}
+                        <p>📍 {item.pickupLocation}</p>
+                        <Button
+                          size="sm"
+                          className="mt-3"
+                          onClick={() => navigate(`/editItem?id=${item._id}`)}
+                        >
+                          Edit
+                        </Button>
                       </CardContent>
                     </Card>
                   ))}

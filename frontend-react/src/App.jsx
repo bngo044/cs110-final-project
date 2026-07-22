@@ -2,6 +2,11 @@ import { Route, Routes } from "react-router-dom"
 
 import LoginPage from "./pages/Login"
 import RegisterPage from "./pages/Register"
+import MainPage from "./pages/Main"
+import ItemDetailsPage from "./pages/ItemDetails"
+import ProfilePage from "./pages/Profile"
+import ReviewPage from "./pages/review"
+import AddItemPage from "./pages/AddItem"
 
 // Match the URL after # to the React page that should be displayed.
 function App() {
@@ -9,6 +14,11 @@ function App() {
     <Routes>
       <Route path="/" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/main" element={<MainPage />} />
+      <Route path="/itemDetails" element={<ItemDetailsPagePage />} />
+      <Route path="/profile" element={<ProfilePage />} />
+      <Route path="/review" element={<ReviewPage />} />
+      <Route path="/addItem" element={<AddItemPage />} />
     </Routes>
   )
 }

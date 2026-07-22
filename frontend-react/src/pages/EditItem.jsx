@@ -87,7 +87,7 @@ function EditItemPage() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.message || "Could not update item.")
 
-      navigate("/profile")
+      navigate("/userListings")
     } catch (err) {
       setError(err.message)
     } finally {
@@ -101,8 +101,8 @@ function EditItemPage() {
 
   return (
     <main className="mx-auto max-w-2xl p-6">
-      <Link to="/profile" className="mb-4 inline-block text-sm underline">
-        Back to Profile
+      <Link to="/userListings" className="mb-4 inline-block text-sm underline">
+        Back to My Listings
       </Link>
 
       <Card>

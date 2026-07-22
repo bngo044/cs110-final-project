@@ -88,9 +88,9 @@ function Main() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button onClick={() => navigate("/profile")} variant="outline" size="sm" className="gap-1.5">
+            <Button onClick={() => navigate("/userListings")} variant="outline" size="sm" className="gap-1.5">
               <UserCheck className="size-4" />
-              My Hub
+              My Listings
             </Button>
 
             <Button onClick={() => navigate("/AddItem")} size="sm" className="gap-1.5">

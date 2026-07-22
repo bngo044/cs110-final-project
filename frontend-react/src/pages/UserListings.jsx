@@ -5,7 +5,7 @@ import { ArrowLeft, LoaderCircle, Package, Clock, CheckCircle2, XCircle, Repeat2
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card"
 
-export default function ProfilePage() {
+export default function UserListingsPage() {
   const navigate = useNavigate()
 
   const [myItems, setMyItems] = useState([])
@@ -86,7 +86,7 @@ export default function ProfilePage() {
           <ArrowLeft className="size-4" /> Back to Dashboard
         </Button>
 
-        <h1 className="text-3xl font-bold mb-8">My CampusShare Hub</h1>
+        <h1 className="text-3xl font-bold mb-8">My Listings and Requests</h1>
 
         {error && <p className="mb-6 text-sm text-destructive">{error}</p>}
 
@@ -109,6 +109,15 @@ export default function ProfilePage() {
                       <CardContent className="flex items-center justify-between p-4">
                         <div>
                           <p className="font-semibold text-sm">{req.itemTitle || "Requested Item"}</p>
+                          <p className="text-sm">
+                            Requested by{" "}
+                            <Link
+                              to={`/profiles/${req.borrowerId}`}
+                              className="font-medium text-primary underline underline-offset-2"
+                            >
+                              {req.borrowerName || "CampusShare user"}
+                            </Link>
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Dates: {req.startDate} to {req.endDate} • Status: <strong className="capitalize">{req.status}</strong>
                           </p>

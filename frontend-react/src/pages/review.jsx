@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { Star, LoaderCircle, X } from "lucide-react"
-import { Button } from "./ui/button"
-import { Input } from "./ui/input"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
 
 export default function ReviewModal({ itemId, isOpen, onClose, onReviewSubmitted }) {
   const [rating, setRating] = useState(5)

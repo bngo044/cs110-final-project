@@ -5,9 +5,11 @@ import { Button } from "../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input"
 import { Label } from "../components/ui/label"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 
 function LoginPage() {
+  const navigate = useNavigate()
+
   // Controlled inputs keep the current form values in React state.
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -45,10 +47,8 @@ function LoginPage() {
       localStorage.setItem("campusShareToken", data.token)
       setMessage(data.message || "Logged in successfully!")
 
-      // The dashboard is still in the original frontend folder for now.
-      window.setTimeout(() => {
-        window.location.href = "/legacy/dashboard.html"
-      }, 600)
+      // Open the React dashboard after a successful login.
+      navigate("/main")
     } catch (error) {
       setIsError(true)
       setMessage(error.message === "Failed to fetch" ? "Cannot reach the server. Make sure npm start is running." : error.message)

@@ -93,7 +93,7 @@ function Main() {
               My Hub
             </Button>
 
-            <Button onClick={() => navigate("/add-item")} size="sm" className="gap-1.5">
+            <Button onClick={() => navigate("/AddItem")} size="sm" className="gap-1.5">
               <Plus className="size-4" />
               List Gear
             </Button>

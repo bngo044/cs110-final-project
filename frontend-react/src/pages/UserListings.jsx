@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, LoaderCircle, Package, Clock, CheckCircle2, XCircle, Repeat2, Camera, Mail, ShieldCheck } from "lucide-react"
+import { ArrowLeft, LoaderCircle, Package, Clock, CheckCircle2, XCircle, Repeat2, Camera, Mail, ShieldCheck, RotateCcw, Star } from "lucide-react"
 
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card"
+import ReviewModal from "../pages/review"
 
 export default function UserListingsPage() {
   const navigate = useNavigate()
@@ -11,9 +12,12 @@ export default function UserListingsPage() {
 
   const [myItems, setMyItems] = useState([])
   const [incomingRequests, setIncomingRequests] = useState([])
+  const [myBorrowings, setMyBorrowings] = useState([])
   const [userProfile, setUserProfile] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [activeReviewRequestId, setActiveReviewRequestId] = useState(null)
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
 
   const userName = userProfile?.name || userProfile?.username || "Campus Student"
   const userEmail = userProfile?.email || "Email not provided"
@@ -29,10 +33,11 @@ export default function UserListingsPage() {
         const headers = { Authorization: `Bearer ${token}` }
 
         // Fetch this user's MongoDB profile, listings, and incoming requests.
-        const [profileRes, itemsRes, reqsRes] = await Promise.all([
+        const [profileRes, itemsRes, reqsRes, sentRes] = await Promise.all([
           fetch("/api/profile/me", { headers }),
           fetch("/api/items/my", { headers }),
           fetch("/api/requests/received", { headers }),
+          fetch("/api/requests/sent", { headers }),
         ])
 
         const profileData = await profileRes.json()
@@ -43,6 +48,11 @@ export default function UserListingsPage() {
 
         const requestsData = await reqsRes.json()
         if (!reqsRes.ok) throw new Error(requestsData.message || "Could not load requests.")
+
+        if (sentRes.ok) {
+        const sentData = await sentRes.json()
+        setMyBorrowings(sentData)
+        }
 
         setUserProfile(profileData)
         setMyItems(itemsData)
@@ -115,6 +125,26 @@ export default function UserListingsPage() {
 
       setIncomingRequests((prev) =>
         prev.map((req) => (req._id === requestId ? { ...req, status } : req))
+      )
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleReturnItem(requestId) {
+    try {
+      setError("")
+      const token = localStorage.getItem("campusShareToken")
+      const response = await fetch(`/api/requests/${requestId}/return`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || "Could not mark as returned.")
+
+      setMyBorrowings((prev) =>
+        prev.map((req) => (req._id === requestId ? { ...req, status: "Returned" } : req))
       )
     } catch (err) {
       setError(err.message)
@@ -276,6 +306,61 @@ export default function UserListingsPage() {
               )}
             </section>
 
+            <section>
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <RotateCcw className="size-5 text-blue-500" /> Items I'm Borrowing
+              </h2>
+
+              {myBorrowings.length === 0 ? (
+                <p className="text-sm text-muted-foreground">You haven't requested or borrowed any items yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {myBorrowings.map((req) => (
+                    <Card key={req._id}>
+                      <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4">
+                        <div>
+                          <p className="font-semibold text-sm">{req.itemTitle || "Borrowed Item"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Lender: <strong className="text-foreground">{req.ownerName || "Campus Lender"}</strong> • Dates: {req.startDate} to {req.endDate}
+                          </p>
+                          <p className="text-xs mt-1">
+                            Status: <span className="font-semibold capitalize text-primary">{req.status}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex gap-2 shrink-0">
+                          {req.status === "Accepted" && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleReturnItem(req._id)}
+                            >
+                              Return Item
+                            </Button>
+                          )}
+
+                          {req.status === "Returned" && (
+                            <Button 
+                              size="sm" 
+                              disabled={req.isReviewed}
+                              onClick={() => {
+                                setActiveReviewRequestId(req._id)
+                                setIsReviewModalOpen(true)
+                              }}
+                              className="gap-1 bg-amber-500 hover:bg-amber-600 text-white"
+                            >
+                              <Star className="size-3.5 fill-white" />
+                              {req.isReviewed ? "Reviewed" : "Leave Review"}
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </section>
+
             {/* Personal Listings */}
             <section>
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -318,6 +403,25 @@ export default function UserListingsPage() {
             </section>
           </div>
         )}
+
+        <ReviewModal
+          isOpen={isReviewModalOpen}
+          requestId={activeReviewRequestId}
+          onClose={() => {
+            setIsReviewModalOpen(false)
+            setActiveReviewRequestId(null)
+          }}
+          onReviewSubmitted={() => {
+            setMyBorrowings((prev) =>
+              prev.map((req) =>
+                req._id === activeReviewRequestId ? { ...req, isReviewed: true } : req
+              )
+            )
+          setIsReviewModalOpen(false)
+          setActiveReviewRequestId(null)
+          }}
+        />
+
       </main>
     </div>
   )

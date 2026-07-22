@@ -118,7 +118,6 @@ export default function UserListingsPage() {
           <ArrowLeft className="size-4" /> Back to Dashboard
         </Button>
 
-<<<<<<< HEAD:frontend-react/src/pages/Profile.jsx
         <Card className="mb-8 border bg-card">
           <CardContent className="flex flex-col sm:flex-row items-center gap-6 p-6">
             <div 
@@ -179,10 +178,7 @@ export default function UserListingsPage() {
           </CardContent>
         </Card>
 
-        <h1 className="text-3xl font-bold mb-8">My CampusShare Hub</h1>
-=======
         <h1 className="text-3xl font-bold mb-8">My Listings and Requests</h1>
->>>>>>> 4c0eadd7ba72b8cd24fdfe350c07198d54faea01:frontend-react/src/pages/UserListings.jsx
 
         {error && <p className="mb-6 text-sm text-destructive">{error}</p>}
 

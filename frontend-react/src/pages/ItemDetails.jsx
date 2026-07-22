@@ -12,6 +12,7 @@ export default function ItemDetailsPage() {
   const navigate = useNavigate()
 
   const [item, setItem] = useState(null)
+  const [owner, setOwner] = useState(null)
   const [reviews, setReviews] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
@@ -28,6 +29,12 @@ export default function ItemDetailsPage() {
         if (!itemRes.ok) throw new Error("Item not found.")
         const itemData = await itemRes.json()
         setItem(itemData)
+
+        // Load the lender's public profile for their current name and picture.
+        if (itemData.ownerId) {
+          const ownerRes = await fetch(`/api/profile/${itemData.ownerId}`)
+          if (ownerRes.ok) setOwner(await ownerRes.json())
+        }
 
         // Fetch item reviews
         const revRes = await fetch(`/api/items/${id}/reviews`)
@@ -126,6 +133,37 @@ export default function ItemDetailsPage() {
                 <span className="flex items-center gap-1"><PackageCheck className="size-4" /> Condition: {item.condition || "N/A"}</span>
               </div>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Lender</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  to={`/profiles/${item.ownerId}`}
+                  className="flex w-fit items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted"
+                >
+                  {owner?.profilePicture ? (
+                    <img
+                      src={owner.profilePicture}
+                      alt={owner.name || owner.username || "Lender"}
+                      className="size-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex size-12 items-center justify-center rounded-full bg-primary font-bold text-primary-foreground">
+                      {(owner?.name || owner?.username || item.ownerName || "U").charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="font-semibold text-foreground">
+                      {owner?.name || owner?.username || item.ownerName || "CampusShare user"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">View public profile</p>
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader><CardTitle className="text-lg">Description</CardTitle></CardHeader>

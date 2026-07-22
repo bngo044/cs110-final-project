@@ -37,7 +37,7 @@ export default function UserListingsPage() {
           fetch("/api/profile/me", { headers }),
           fetch("/api/items/my", { headers }),
           fetch("/api/requests/received", { headers }),
-          fetch("/api/requests/sent", { headers }),
+          fetch("/api/requests/my", { headers }),
         ])
 
         const profileData = await profileRes.json()
@@ -135,9 +135,13 @@ export default function UserListingsPage() {
     try {
       setError("")
       const token = localStorage.getItem("campusShareToken")
-      const response = await fetch(`/api/requests/${requestId}/return`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await fetch(`/api/requests/${requestId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "Returned" }),
       })
 
       const data = await response.json()
@@ -236,7 +240,7 @@ export default function UserListingsPage() {
               
               <div className="pt-2 flex flex-wrap gap-2 justify-center sm:justify-start items-center">
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
-                  <ShieldCheck className="size-3" /> Active Lender
+                  <ShieldCheck className="size-3" /> Active 
                 </span>
                 
                 <Button
@@ -321,10 +325,13 @@ export default function UserListingsPage() {
                         <div>
                           <p className="font-semibold text-sm">{req.itemTitle || "Borrowed Item"}</p>
                           <p className="text-xs text-muted-foreground">
-                            Lender: <strong className="text-foreground">{req.ownerName || "Campus Lender"}</strong> • Dates: {req.startDate} to {req.endDate}
+                            Owner: <strong className="text-foreground">{req.ownerName || "Campus Lender"}</strong> • Dates: {req.startDate} to {req.endDate}
                           </p>
                           <p className="text-xs mt-1">
-                            Status: <span className="font-semibold capitalize text-primary">{req.status}</span>
+                            Status:{" "}
+                            <span className="font-semibold capitalize text-primary">
+                              {req.status === "Accepted" ? "Borrowed" : req.status}
+                            </span>
                           </p>
                         </div>
 
@@ -347,7 +354,10 @@ export default function UserListingsPage() {
                                 setActiveReviewRequestId(req._id)
                                 setIsReviewModalOpen(true)
                               }}
-                              className="gap-1 bg-amber-500 hover:bg-amber-600 text-white"
+                              className={req.isReviewed
+                                ? "gap-1 cursor-not-allowed bg-muted text-muted-foreground"
+                                : "gap-1 bg-amber-500 text-white hover:bg-amber-600"
+                              }
                             >
                               <Star className="size-3.5 fill-white" />
                               {req.isReviewed ? "Reviewed" : "Leave Review"}

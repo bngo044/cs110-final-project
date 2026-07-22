@@ -47,7 +47,7 @@ async function startServer() {
     app.use("/api", authRouter);
     app.use("/api/profile", createProfileRouter(users, items, requireAuth));
     app.use("/api/items", createItemRouter(items, searches, requireAuth, users));
-    app.use("/api/requests", createRequestRouter(requests, items, requireAuth, users));
+    app.use("/api/requests", createRequestRouter(requests, items, requireAuth, users, reviews));
     app.use("/api/reviews", createReviewRouter(reviews, requests, users, requireAuth));
 
     app.listen(PORT, () => {

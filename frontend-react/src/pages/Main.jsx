@@ -222,6 +222,7 @@ function Main() {
                   </p>
                   
                   <div className="space-y-1 text-foreground/80 font-medium bg-muted/40 p-2.5 rounded-lg text-[12px]">
+                    <p>👤 Owner: {item.ownerName || "CampusShare user"}</p>
                     <p className="truncate">📍 <strong>Meetup:</strong> {item.pickupLocation || "On campus"}</p>
                     <p>📦 <strong>Condition:</strong> {item.condition || "Gently used"}</p>
                   </div>

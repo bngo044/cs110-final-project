@@ -68,6 +68,29 @@ export default function UserListingsPage() {
     }
   }
 
+  async function handleDelete(itemId) {
+    const confirmed = window.confirm("Delete this listing?")
+    if (!confirmed) return
+
+    try {
+      setError("")
+      const token = localStorage.getItem("campusShareToken")
+      const response = await fetch(`/api/items/${itemId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || "Could not delete listing.")
+
+      setMyItems((items) => items.filter((item) => item._id !== itemId))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b bg-card">
@@ -158,13 +181,22 @@ export default function UserListingsPage() {
                       </CardHeader>
                       <CardContent className="text-xs text-muted-foreground">
                         <p>📍 {item.pickupLocation}</p>
-                        <Button
-                          size="sm"
-                          className="mt-3"
-                          onClick={() => navigate(`/editItem?id=${item._id}`)}
-                        >
-                          Edit
-                        </Button>
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`/editItem?id=${item._id}`)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive"
+                            onClick={() => handleDelete(item._id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

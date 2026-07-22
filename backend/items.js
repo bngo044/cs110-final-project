@@ -7,10 +7,25 @@ const { ObjectId } = require("mongodb");
  * @param {import("mongodb").Collection} items - MongoDB listings collection.
  * @param {import("mongodb").Collection} searches - MongoDB search history collection.
  * @param {import("express").RequestHandler} requireAuth - Middleware that verifies login tokens.
+ * @param {import("mongodb").Collection} users - MongoDB users collection.
  * @returns {import("express").Router} The item router.
  */
-function createItemRouter(items, searches, requireAuth) {
+function createItemRouter(items, searches, requireAuth, users) {
   const router = express.Router();
+
+  async function addOwnerName(item) {
+    if (!users || !item?.ownerId) return item;
+
+    const owner = await users.findOne(
+      { _id: item.ownerId },
+      { projection: { name: 1, username: 1 } }
+    );
+
+    return {
+      ...item,
+      ownerName: owner?.name || owner?.username || "CampusShare user"
+    };
+  }
 
   /**
    * Creates a listing owned by the logged-in user.
@@ -92,7 +107,7 @@ function createItemRouter(items, searches, requireAuth) {
         return res.status(404).json({ message: "Item not found." });
       }
 
-      res.json(item);
+      res.json(await addOwnerName(item));
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Could not fetch item." });
@@ -120,7 +135,7 @@ function createItemRouter(items, searches, requireAuth) {
       if (req.query.available === "true") filter.availability = true;
 
       const foundItems = await items.find(filter).sort({ createdAt: -1 }).limit(50).toArray();
-      res.json(foundItems);
+      res.json(await Promise.all(foundItems.map(addOwnerName)));
     } catch (error) {
       res.status(500).json({ message: "Could not search listings." });
     }

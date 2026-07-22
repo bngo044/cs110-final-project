@@ -56,6 +56,26 @@ function createItemRouter(items, searches, requireAuth) {
   });
 
   /**
+   * Returns listings owned by the logged-in user.
+   * This named route must come before /:id so "my" is not treated as an ID.
+   * @route GET /api/items/my
+   * @access Private
+   */
+  router.get("/my", requireAuth, async (req, res) => {
+    try {
+      const myItems = await items
+        .find({ ownerId: req.userId })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      res.json(myItems);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Could not load your listings." });
+    }
+  });
+
+  /**
    * Fetches a specific listing by its ID.
    * @route GET /api/items/:id
    * @access Public
@@ -104,16 +124,6 @@ function createItemRouter(items, searches, requireAuth) {
     } catch (error) {
       res.status(500).json({ message: "Could not search listings." });
     }
-  });
-
-  /**
-   * Returns listings owned by the logged-in user.
-   * @route GET /api/items/my
-   * @access Private
-   */
-  router.get("/my", requireAuth, async (req, res) => {
-    const myItems = await items.find({ ownerId: req.userId }).sort({ createdAt: -1 }).toArray();
-    res.json(myItems);
   });
 
   /**

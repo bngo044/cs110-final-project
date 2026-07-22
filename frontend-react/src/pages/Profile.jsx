@@ -11,6 +11,7 @@ export default function ProfilePage() {
   const [myItems, setMyItems] = useState([])
   const [incomingRequests, setIncomingRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     async function loadUserData() {
@@ -27,10 +28,13 @@ export default function ProfilePage() {
           fetch("/api/requests/owner", { headers }),
         ])
 
-        if (itemsRes.ok) setMyItems(await itemsRes.json())
+        const itemsData = await itemsRes.json()
+        if (!itemsRes.ok) throw new Error(itemsData.message || "Could not load your listings.")
+
+        setMyItems(itemsData)
         if (reqsRes.ok) setIncomingRequests(await reqsRes.json())
       } catch (err) {
-        console.error(err)
+        setError(err.message)
       } finally {
         setIsLoading(false)
       }
@@ -77,6 +81,8 @@ export default function ProfilePage() {
         </Button>
 
         <h1 className="text-3xl font-bold mb-8">My CampusShare Hub</h1>
+
+        {error && <p className="mb-6 text-sm text-destructive">{error}</p>}
 
         {isLoading ? (
           <div className="flex py-20 justify-center"><LoaderCircle className="size-8 animate-spin" /></div>

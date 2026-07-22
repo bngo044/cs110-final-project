@@ -2,15 +2,14 @@ const express = require("express");
 const { ObjectId } = require("mongodb");
 
 /**
- * Creates routes for listings, searches, and recommendations.
+ * Creates routes for item listings.
  *
  * @param {import("mongodb").Collection} items - MongoDB listings collection.
- * @param {import("mongodb").Collection} searches - MongoDB search history collection.
  * @param {import("express").RequestHandler} requireAuth - Middleware that verifies login tokens.
  * @param {import("mongodb").Collection} users - MongoDB users collection.
  * @returns {import("express").Router} The item router.
  */
-function createItemRouter(items, searches, requireAuth, users) {
+function createItemRouter(items, requireAuth, users) {
   const router = express.Router();
 
   async function addOwnerName(item) {
@@ -139,36 +138,6 @@ function createItemRouter(items, searches, requireAuth, users) {
     } catch (error) {
       res.status(500).json({ message: "Could not search listings." });
     }
-  });
-
-  /**
-   * Saves a search term for future recommendations.
-   * @route POST /api/items/searches
-   * @access Private
-   */
-  router.post("/searches", requireAuth, async (req, res) => {
-    const term = ((req.body || {}).term || "").trim();
-    if (term) await searches.insertOne({ userId: req.userId, term, createdAt: new Date() });
-    res.status(201).json({ message: "Search saved." });
-  });
-
-  /**
-   * Recommends listings using the user's recent search terms.
-   * @route GET /api/items/recommendations
-   * @access Private
-   */
-  router.get("/recommendations", requireAuth, async (req, res) => {
-    const recent = await searches.find({ userId: req.userId }).sort({ createdAt: -1 }).limit(5).toArray();
-    const terms = recent.map((search) => search.term).filter(Boolean);
-    const filter = terms.length ? {
-      $or: terms.flatMap((term) => [
-        { title: { $regex: term, $options: "i" } },
-        { category: { $regex: term, $options: "i" } }
-      ])
-    } : { availability: true };
-
-    const recommendations = await items.find(filter).limit(10).toArray();
-    res.json(recommendations);
   });
 
   /**

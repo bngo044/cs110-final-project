@@ -34,7 +34,6 @@ async function startServer() {
     const users = database.collection("users");
     const items = database.collection("items");
     const sessions = database.collection("sessions");
-    const searches = database.collection("searches");
     const requests = database.collection("requests");
     const reviews = database.collection("reviews");
 
@@ -46,7 +45,7 @@ async function startServer() {
 
     app.use("/api", authRouter);
     app.use("/api/profile", createProfileRouter(users, items, requireAuth));
-    app.use("/api/items", createItemRouter(items, searches, requireAuth, users));
+    app.use("/api/items", createItemRouter(items, requireAuth, users));
     app.use("/api/requests", createRequestRouter(requests, items, requireAuth, users, reviews));
     app.use("/api/reviews", createReviewRouter(reviews, requests, users, requireAuth));
 

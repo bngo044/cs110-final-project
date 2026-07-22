@@ -76,7 +76,12 @@ function createProfileRouter(users, items, requireAuth) {
         return res.status(404).json({ message: "User not found." });
       }
 
-      const listings = await items.find({ ownerId: profileId }).toArray();
+      // Older listings may not have an availability field. `$ne: false`
+      // treats those legacy records as active while hiding borrowed items.
+      const listings = await items.find({
+        ownerId: profileId,
+        availability: { $ne: false }
+      }).toArray();
       res.json({ ...user, listings });
     } catch (error) {
       console.error(error);

@@ -291,6 +291,11 @@ export default function UserListingsPage() {
                           <p className="text-xs text-muted-foreground">
                             Dates: {req.startDate} to {req.endDate} • Status: <strong className="capitalize">{req.status}</strong>
                           </p>
+                          {req.message && (
+                            <p className="mt-1 text-sm">
+                              <strong>Exchange offer:</strong> {req.message}
+                            </p>
+                          )}
                         </div>
 
                         {req.status === "Pending" && (

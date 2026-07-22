@@ -13,7 +13,19 @@ const { ObjectId } = require("mongodb");
  */
 function createRequestRouter(requests, items, requireAuth, users, reviews) {
   const router = express.Router();
-  const statuses = ["Pending", "Accepted", "Rejected", "Returned"];
+  const REQUEST_STATUS = Object.freeze({
+    PENDING: "Pending",
+    ACCEPTED: "Accepted",
+    REJECTED: "Rejected",
+    RETURNED: "Returned"
+  });
+  const validStatuses = new Set(Object.values(REQUEST_STATUS));
+
+  // MongoDB IDs may arrive as ObjectId instances or serialized strings.
+  // Comparing their string forms keeps authorization checks consistent.
+  function sameId(firstId, secondId) {
+    return String(firstId) === String(secondId);
+  }
 
   /**
    * Sends a new borrowing request for another user's listing.
@@ -26,7 +38,7 @@ function createRequestRouter(requests, items, requireAuth, users, reviews) {
       const item = await items.findOne({ _id: itemId });
 
       if (!item) return res.status(404).json({ message: "Listing not found." });
-      if (String(item.ownerId) === String(req.userId)) {
+      if (sameId(item.ownerId, req.userId)) {
         return res.status(400).json({ message: "You cannot request your own item." });
       }
       if (item.availability === false) {
@@ -52,7 +64,7 @@ function createRequestRouter(requests, items, requireAuth, users, reviews) {
       const existingRequest = await requests.findOne({
         itemId,
         borrowerId: req.userId,
-        status: { $in: ["Pending", "Accepted"] }
+        status: { $in: [REQUEST_STATUS.PENDING, REQUEST_STATUS.ACCEPTED] }
       });
       if (existingRequest) {
         return res.status(409).json({ message: "You already have an active request for this item." });
@@ -65,7 +77,7 @@ function createRequestRouter(requests, items, requireAuth, users, reviews) {
         message: (req.body.message || "").trim(),
         startDate,
         endDate,
-        status: "Pending",
+        status: REQUEST_STATUS.PENDING,
         createdAt: new Date()
       };
 
@@ -162,27 +174,29 @@ function createRequestRouter(requests, items, requireAuth, users, reviews) {
   router.put("/:id/status", requireAuth, async (req, res) => {
     try {
       const status = req.body.status;
-      if (!statuses.includes(status)) return res.status(400).json({ message: "Invalid request status." });
+      if (!validStatuses.has(status)) return res.status(400).json({ message: "Invalid request status." });
 
       const requestId = new ObjectId(req.params.id);
       const request = await requests.findOne({ _id: requestId });
 
       if (!request) return res.status(404).json({ message: "Request not found." });
 
-      const isOwner = String(request.ownerId) === String(req.userId);
-      const isBorrower = String(request.borrowerId) === String(req.userId);
+      const isOwner = sameId(request.ownerId, req.userId);
+      const isBorrower = sameId(request.borrowerId, req.userId);
 
-      if (status === "Returned") {
+      // Returning is the only transition controlled by the borrower. The
+      // request must already be accepted, and returning reopens the listing.
+      if (status === REQUEST_STATUS.RETURNED) {
         if (!isBorrower) {
           return res.status(403).json({ message: "Only the borrower can return this item." });
         }
-        if (request.status !== "Accepted") {
+        if (request.status !== REQUEST_STATUS.ACCEPTED) {
           return res.status(400).json({ message: "Only an accepted request can be returned." });
         }
 
         await requests.updateOne(
-          { _id: requestId, borrowerId: req.userId, status: "Accepted" },
-          { $set: { status: "Returned", updatedAt: new Date() } }
+          { _id: requestId, borrowerId: req.userId, status: REQUEST_STATUS.ACCEPTED },
+          { $set: { status: REQUEST_STATUS.RETURNED, updatedAt: new Date() } }
         );
         await items.updateOne(
           { _id: request.itemId },
@@ -195,25 +209,55 @@ function createRequestRouter(requests, items, requireAuth, users, reviews) {
       if (!isOwner) {
         return res.status(403).json({ message: "Only the item owner can update this request." });
       }
-      if (!['Accepted', 'Rejected'].includes(status) || request.status !== "Pending") {
+      if (![REQUEST_STATUS.ACCEPTED, REQUEST_STATUS.REJECTED].includes(status) || request.status !== REQUEST_STATUS.PENDING) {
         return res.status(400).json({ message: "A pending request can only be accepted or rejected." });
       }
 
+      // Reserve the item with a conditional update. Only one concurrent
+      // acceptance can change availability from available to unavailable.
+      if (status === REQUEST_STATUS.ACCEPTED) {
+        const itemResult = await items.updateOne(
+          { _id: request.itemId, availability: { $ne: false } },
+          { $set: { availability: false, updatedAt: new Date() } }
+        );
+
+        if (!itemResult.modifiedCount) {
+          return res.status(409).json({ message: "This item is already being borrowed." });
+        }
+
+        const acceptedResult = await requests.updateOne(
+          { _id: requestId, ownerId: req.userId, status: REQUEST_STATUS.PENDING },
+          { $set: { status: REQUEST_STATUS.ACCEPTED, updatedAt: new Date() } }
+        );
+
+        if (!acceptedResult.matchedCount) {
+          return res.status(409).json({ message: "This request is no longer pending." });
+        }
+
+        // Once one borrower is selected, every competing pending request for
+        // the same item must be rejected so no second borrower can be accepted.
+        await requests.updateMany(
+          {
+            _id: { $ne: requestId },
+            itemId: request.itemId,
+            status: REQUEST_STATUS.PENDING
+          },
+          { $set: { status: REQUEST_STATUS.REJECTED, updatedAt: new Date() } }
+        );
+
+        return res.json({ message: "Request accepted. Other pending requests were rejected." });
+      }
+
+      // Rejection does not change item availability, so it only updates the
+      // selected request after the owner and transition checks above pass.
       const result = await requests.updateOne(
-        { _id: requestId, ownerId: req.userId, status: "Pending" },
-        { $set: { status, updatedAt: new Date() } }
+        { _id: requestId, ownerId: req.userId, status: REQUEST_STATUS.PENDING },
+        { $set: { status: REQUEST_STATUS.REJECTED, updatedAt: new Date() } }
       );
 
       if (!result.matchedCount) return res.status(404).json({ message: "Request not found or not yours." });
 
-      if (status === "Accepted") {
-        await items.updateOne(
-          { _id: request.itemId },
-          { $set: { availability: false, updatedAt: new Date() } }
-        );
-      }
-
-      res.json({ message: `Request marked ${status}.` });
+      res.json({ message: "Request marked Rejected." });
     } catch (error) {
       res.status(400).json({ message: "Invalid request ID." });
     }

@@ -42,6 +42,7 @@ function createAuth(users, sessions) {
       }
 
       req.userId = new ObjectId(session.userId);
+      req.authToken = token;
       next();
     } catch (error) {
       res.status(401).json({ message: "Invalid login token." });
@@ -122,6 +123,22 @@ function createAuth(users, sessions) {
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "Could not log in." });
+    }
+  });
+
+  /**
+   * Deletes the current login session so its token cannot be reused.
+   *
+   * @route POST /api/logout
+   * @access Private
+   */
+  router.post("/logout", requireAuth, async (req, res) => {
+    try {
+      await sessions.deleteOne({ token: req.authToken });
+      res.json({ message: "Logged out successfully." });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Could not log out." });
     }
   });
 

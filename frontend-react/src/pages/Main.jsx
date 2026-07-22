@@ -57,9 +57,20 @@ function Main() {
     }
   }
 
-  function handleLogout() {
-    localStorage.removeItem("campusShareToken")
-    navigate("/")
+  async function handleLogout() {
+    const token = localStorage.getItem("campusShareToken")
+
+    try {
+      if (token) {
+        await fetch("/api/logout", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      }
+    } finally {
+      localStorage.removeItem("campusShareToken")
+      navigate("/")
+    }
   }
 
   // Filter items by search query and category
@@ -177,7 +188,7 @@ function Main() {
                 ? "Try searching for something else or switch categories."
                 : "No items listed yet! Be the first classmate to drop something here."}
             </p>
-            <Button size="sm" onClick={() => navigate("/add-item")}>
+            <Button size="sm" onClick={() => navigate("/addItem")}>
               Post the first item
             </Button>
           </div>

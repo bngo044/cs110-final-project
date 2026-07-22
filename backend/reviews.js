@@ -14,6 +14,50 @@ function createReviewRouter(reviews, requests, users, requireAuth) {
   const router = express.Router();
 
   /**
+   * Returns all reviews connected to borrowing requests for one item.
+   * @route GET /api/reviews/item/:itemId
+   * @access Public
+   */
+  router.get("/item/:itemId", async (req, res) => {
+    try {
+      if (!ObjectId.isValid(req.params.itemId)) {
+        return res.status(400).json({ message: "Invalid item ID." });
+      }
+
+      const itemRequests = await requests
+        .find({ itemId: new ObjectId(req.params.itemId) })
+        .toArray();
+      const requestIds = itemRequests.map((request) => request._id);
+
+      if (!requestIds.length) return res.json([]);
+
+      const itemReviews = await reviews
+        .find({ requestId: { $in: requestIds } })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      const reviewsWithNames = await Promise.all(
+        itemReviews.map(async (review) => {
+          const reviewer = await users.findOne(
+            { _id: review.reviewerId },
+            { projection: { name: 1, username: 1 } }
+          );
+
+          return {
+            ...review,
+            reviewerName: reviewer?.name || reviewer?.username || "CampusShare user"
+          };
+        })
+      );
+
+      res.json(reviewsWithNames);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Could not load item reviews." });
+    }
+  });
+
+  /**
    * Adds one rating and comment after a request is marked Returned.
    * @route POST /api/reviews
    * @access Private

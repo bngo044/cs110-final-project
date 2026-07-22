@@ -4,7 +4,6 @@ import RegisterPage from "./pages/Register"
 import MainPage from "./pages/Main"
 import ItemDetailsPage from "./pages/ItemDetails"
 import UserListingsPage from "./pages/UserListings"
-import ReviewPage from "./pages/review"
 import AddItemPage from "./pages/AddItem"
 import EditItemPage from "./pages/EditItem"
 import PublicProfilePage from "./pages/PublicProfile"
@@ -18,7 +17,6 @@ function App() {
       <Route path="/main" element={<MainPage />} />
       <Route path="/itemDetails/:id" element={<ItemDetailsPage />} />
       <Route path="/userListings" element={<UserListingsPage />} />
-      <Route path="/review" element={<ReviewPage />} />
       <Route path="/addItem" element={<AddItemPage />} />
       <Route path="/editItem" element={<EditItemPage />} />
       <Route path="/profiles/:userId" element={<PublicProfilePage />} />

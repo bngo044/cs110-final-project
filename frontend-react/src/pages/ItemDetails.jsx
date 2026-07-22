@@ -20,6 +20,8 @@ export default function ItemDetailsPage() {
   const [requestDates, setRequestDates] = useState({ startDate: "", endDate: "" })
   const [isRequesting, setIsRequesting] = useState(false)
   const [requestMessage, setRequestMessage] = useState("")
+  const [showExchangePopup, setShowExchangePopup] = useState(false)
+  const [exchangeOffer, setExchangeOffer] = useState("")
 
   useEffect(() => {
     async function fetchItemDetails() {
@@ -37,7 +39,7 @@ export default function ItemDetailsPage() {
         }
 
         // Fetch item reviews
-        const revRes = await fetch(`/api/items/${id}/reviews`)
+        const revRes = await fetch(`/api/reviews/item/${id}`)
         if (revRes.ok) {
           const revData = await revRes.json()
           setReviews(revData)
@@ -51,8 +53,7 @@ export default function ItemDetailsPage() {
     fetchItemDetails()
   }, [id])
 
-  async function handleRequest(e) {
-    e.preventDefault()
+  async function submitRequest(message = "") {
     setIsRequesting(true)
     setRequestMessage("")
 
@@ -69,6 +70,7 @@ export default function ItemDetailsPage() {
         body: JSON.stringify({
           itemId: id,
           ownerId: item.ownerId,
+          message,
           ...requestDates,
         }),
       })
@@ -77,10 +79,36 @@ export default function ItemDetailsPage() {
       if (!res.ok) throw new Error(data.message || "Failed to submit request.")
 
       setRequestMessage("Request submitted! The owner will review it.")
+      return true
     } catch (err) {
       setRequestMessage(err.message)
+      return false
     } finally {
       setIsRequesting(false)
+    }
+  }
+
+  async function handleRequest(e) {
+    e.preventDefault()
+
+    if (item.listingType === "Exchange") {
+      setRequestMessage("")
+      setShowExchangePopup(true)
+      return
+    }
+
+    await submitRequest()
+  }
+
+  async function handleExchangeSubmit(e) {
+    e.preventDefault()
+    const offer = exchangeOffer.trim()
+    if (!offer) return
+
+    const submitted = await submitRequest(offer)
+    if (submitted) {
+      setShowExchangePopup(false)
+      setExchangeOffer("")
     }
   }
 
@@ -122,22 +150,28 @@ export default function ItemDetailsPage() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
 
           <div className="space-y-6 lg:col-span-2">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium">{item.category}</span>
-                <span className="text-xs font-semibold text-primary">{item.listingType}</span>
-              </div>
-              <h1 className="text-3xl font-bold">{item.title}</h1>
-              <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1"><MapPin className="size-4" /> {item.pickupLocation}</span>
-                <span className="flex items-center gap-1"><PackageCheck className="size-4" /> Condition: {item.condition || "N/A"}</span>
-              </div>
-            </div>
-
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Lender</CardTitle>
+                <CardTitle className="text-2xl">{item.title}</CardTitle>
               </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <p className="flex items-center gap-2">
+                  <MapPin className="size-4 text-muted-foreground" />
+                  <strong>Location:</strong> {item.pickupLocation || "Not provided"}
+                </p>
+                <p className="flex items-center gap-2">
+                  <PackageCheck className="size-4 text-muted-foreground" />
+                  <strong>Condition:</strong> {item.condition || "Not provided"}
+                </p>
+                <p><strong>Request Type:</strong> {item.listingType || "Borrow"}</p>
+                <p className="leading-relaxed">
+                  <strong>Description:</strong>{" "}
+                  {item.description || "No description provided."}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
               <CardContent>
                 <Link
                   to={`/profiles/${item.ownerId}`}
@@ -163,11 +197,6 @@ export default function ItemDetailsPage() {
                   </div>
                 </Link>
               </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader><CardTitle className="text-lg">Description</CardTitle></CardHeader>
-              <CardContent><p className="text-sm leading-relaxed">{item.description || "No description provided."}</p></CardContent>
             </Card>
 
             <div>
@@ -238,6 +267,52 @@ export default function ItemDetailsPage() {
           </div>
         </div>
       </main>
+
+      {showExchangePopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>What will you exchange?</CardTitle>
+              <CardDescription>
+                Tell the owner what item you are offering in exchange.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleExchangeSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="exchangeOffer">Your offer</Label>
+                  <Input
+                    id="exchangeOffer"
+                    placeholder="Example: My chemistry textbook"
+                    required
+                    autoFocus
+                    value={exchangeOffer}
+                    onChange={(e) => setExchangeOffer(e.target.value)}
+                  />
+                </div>
+
+                {requestMessage && (
+                  <p className="text-sm text-destructive">{requestMessage}</p>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={isRequesting}
+                    onClick={() => setShowExchangePopup(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isRequesting}>
+                    {isRequesting ? "Sending..." : "Send Exchange Request"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

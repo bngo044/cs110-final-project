@@ -231,7 +231,7 @@ function Main() {
                   <Button
                     className="w-full text-xs font-semibold"
                     size="sm"
-                    onClick={() => navigate(`/items/${item._id}`)}
+                    onClick={() => navigate(`/itemDetails/${item._id}`)}
                   >
                     {item.listingType === "Exchange" ? "Offer an Exchange" : "Hit Up Owner to Borrow"}
                   </Button>

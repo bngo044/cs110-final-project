@@ -3,7 +3,7 @@ import { Star, LoaderCircle, X } from "lucide-react"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
 
-export default function ReviewModal({ itemId, isOpen, onClose, onReviewSubmitted }) {
+export default function ReviewModal({ requestId, isOpen, onClose, onReviewSubmitted }) {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -18,19 +18,19 @@ export default function ReviewModal({ itemId, isOpen, onClose, onReviewSubmitted
 
     try {
       const token = localStorage.getItem("campusShareToken")
-      const res = await fetch(`/api/items/${itemId}/reviews`, {
+      const res = await fetch("/api/reviews", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ rating, comment }),
+        body: JSON.stringify({ requestId, rating, comment }),
       })
 
       if (!res.ok) throw new Error("Failed to submit review.")
 
-      onReviewSubmitted()
-      onClose()
+      if (onReviewSubmitted) onReviewSubmitted()
+      if (onClose) onClose()
     } catch (err) {
       setError(err.message)
     } finally {

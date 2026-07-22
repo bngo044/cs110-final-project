@@ -11,19 +11,13 @@ export default function UserListingsPage() {
 
   const [myItems, setMyItems] = useState([])
   const [incomingRequests, setIncomingRequests] = useState([])
+  const [userProfile, setUserProfile] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Retrieve user info from local storage
-  const userString = localStorage.getItem("user")
-  const user = userString ? JSON.parse(userString) : null
-  const userName = user?.name || user?.username || localStorage.getItem("userName") || "Campus Student"
-  const userEmail = user?.email || "student@campus.edu"
-
-  // Profile picture state (supports base64, external URL, or local storage fallback)
-  const [profilePic, setProfilePic] = useState(
-    localStorage.getItem("userAvatar") || user?.avatarUrl || ""
-  )
+  const userName = userProfile?.name || userProfile?.username || "Campus Student"
+  const userEmail = userProfile?.email || "Email not provided"
+  const profilePic = userProfile?.profilePicture || ""
 
   useEffect(() => {
     async function loadUserData() {
@@ -34,11 +28,15 @@ export default function UserListingsPage() {
 
         const headers = { Authorization: `Bearer ${token}` }
 
-        // Fetch personal items and incoming requests
-        const [itemsRes, reqsRes] = await Promise.all([
+        // Fetch this user's MongoDB profile, listings, and incoming requests.
+        const [profileRes, itemsRes, reqsRes] = await Promise.all([
+          fetch("/api/profile/me", { headers }),
           fetch("/api/items/my", { headers }),
           fetch("/api/requests/received", { headers }),
         ])
+
+        const profileData = await profileRes.json()
+        if (!profileRes.ok) throw new Error(profileData.message || "Could not load your profile.")
 
         const itemsData = await itemsRes.json()
         if (!itemsRes.ok) throw new Error(itemsData.message || "Could not load your listings.")
@@ -46,6 +44,7 @@ export default function UserListingsPage() {
         const requestsData = await reqsRes.json()
         if (!reqsRes.ok) throw new Error(requestsData.message || "Could not load requests.")
 
+        setUserProfile(profileData)
         setMyItems(itemsData)
         setIncomingRequests(requestsData)
       } catch (err) {
@@ -61,17 +60,39 @@ export default function UserListingsPage() {
     const file = e.target.files[0]
     if (!file) return
 
-    // Preview image locally immediately via Base64 reader
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      const base64Image = reader.result
-      setProfilePic(base64Image)
+    if (!file.type.startsWith("image/")) {
+      setError("Choose an image file.")
+      return
+    }
 
-      // Save to localStorage so Main dashboard navbar updates instantly
-      localStorage.setItem("userAvatar", base64Image)
-      if (user) {
-        const updatedUser = { ...user, avatarUrl: base64Image }
-        localStorage.setItem("user", JSON.stringify(updatedUser))
+    if (file.size > 2 * 1024 * 1024) {
+      setError("Profile picture must be smaller than 2 MB.")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = async () => {
+      try {
+        setError("")
+        const token = localStorage.getItem("campusShareToken")
+        const response = await fetch("/api/profile/me", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ profilePicture: reader.result }),
+        })
+
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.message || "Could not save profile picture.")
+
+        setUserProfile((profile) => ({
+          ...profile,
+          profilePicture: data.profile.profilePicture,
+        }))
+      } catch (err) {
+        setError(err.message)
       }
     }
     reader.readAsDataURL(file)

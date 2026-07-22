@@ -13,7 +13,8 @@ const app = express();
 const PORT = 3000;
 const client = new MongoClient(process.env.MONGO_URI);
 
-app.use(express.json());
+// Profile pictures are stored as small base64 data URLs in MongoDB.
+app.use(express.json({ limit: "3mb" }));
 
 // Serve the React login page and the API from the same localhost:3000 origin.
 app.use(express.static(path.join(__dirname, "../frontend-react/dist")));

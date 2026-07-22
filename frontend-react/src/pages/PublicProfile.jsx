@@ -37,7 +37,20 @@ function PublicProfilePage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>{profile.name || profile.username}</CardTitle>
+              <div className="flex items-center gap-4">
+                {profile.profilePicture ? (
+                  <img
+                    src={profile.profilePicture}
+                    alt={profile.name || profile.username}
+                    className="size-20 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex size-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+                    {(profile.name || profile.username).charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <CardTitle>{profile.name || profile.username}</CardTitle>
+              </div>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>Username: {profile.username}</p>

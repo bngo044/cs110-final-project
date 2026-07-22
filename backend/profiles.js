@@ -33,12 +33,22 @@ function createProfileRouter(users, items, requireAuth) {
    */
   router.put("/me", requireAuth, async (req, res) => {
     const body = req.body || {};
-    const profile = {
-      name: (body.name || "").trim(),
-      profilePicture: (body.profilePicture || "").trim(),
-      campusLocation: (body.campusLocation || "").trim(),
-      bio: (body.bio || "").trim()
-    };
+    const profile = {};
+
+    if (typeof body.name === "string") profile.name = body.name.trim();
+    if (typeof body.campusLocation === "string") profile.campusLocation = body.campusLocation.trim();
+    if (typeof body.bio === "string") profile.bio = body.bio.trim();
+    if (typeof body.profilePicture === "string") {
+      const picture = body.profilePicture.trim();
+      if (picture && !picture.startsWith("data:image/")) {
+        return res.status(400).json({ message: "Choose a valid image file." });
+      }
+      profile.profilePicture = picture;
+    }
+
+    if (!Object.keys(profile).length) {
+      return res.status(400).json({ message: "No profile fields were provided." });
+    }
 
     await users.updateOne({ _id: req.userId }, { $set: profile });
     res.json({ message: "Profile updated.", profile });

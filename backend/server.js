@@ -19,9 +19,6 @@ app.use(express.json({ limit: "3mb" }));
 // Serve the React login page and the API from the same localhost:3000 origin.
 app.use(express.static(path.join(__dirname, "../frontend-react/dist")));
 
-// Keep the existing HTML pages available while they are gradually moved to React.
-app.use("/legacy", express.static(path.join(__dirname, "../frontend")));
-
 /**
  * Connects to MongoDB, creates indexes and API routes, then starts Express.
  *

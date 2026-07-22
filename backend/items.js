@@ -34,7 +34,7 @@ function createItemRouter(items, requireAuth, users) {
   router.post("/", requireAuth, async (req, res) => {
     try {
       const body = req.body || {};
-      const title = (body.title || body.name || "").trim();
+      const title = (body.title || "").trim();
       const quantity = Number(body.quantity ?? 1);
 
       if (!title || !body.category || !body.pickupLocation) {
@@ -57,7 +57,6 @@ function createItemRouter(items, requireAuth, users) {
         availability: body.availability !== false,
         pickupLocation: body.pickupLocation.trim(),
         listingType: body.listingType || "Borrow",
-        dueDate: body.dueDate ? new Date(body.dueDate) : null,
         createdAt: new Date()
       };
 

@@ -1,4 +1,5 @@
 const express = require("express");
+const { ObjectId } = require("mongodb");
 
 /**
  * Creates routes for viewing and updating the logged-in user's profile.
@@ -51,19 +52,21 @@ function createProfileRouter(users, items, requireAuth) {
   router.get("/:userId", async (req, res) => {
     try {
       const userId = req.params.userId;
-      if (!userId) {
+      if (!ObjectId.isValid(userId)) {
         return res.status(400).json({ message: "User ID is required." });
       }
 
+      const profileId = new ObjectId(userId);
+
       const user = await users.findOne(
-        { _id: new ObjectId(userId) },
-        { projection: { passwordHash: 0, salt: 0 } }
+        { _id: profileId },
+        { projection: { passwordHash: 0, salt: 0, email: 0 } }
       );
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
 
-      const listings = await items.find({ ownerId: userId }).toArray();
+      const listings = await items.find({ ownerId: profileId }).toArray();
       res.json({ ...user, listings });
     } catch (error) {
       console.error(error);

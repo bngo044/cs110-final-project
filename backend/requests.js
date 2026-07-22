@@ -7,9 +7,10 @@ const { ObjectId } = require("mongodb");
  * @param {import("mongodb").Collection} requests - MongoDB borrowing requests collection.
  * @param {import("mongodb").Collection} items - MongoDB listings collection.
  * @param {import("express").RequestHandler} requireAuth - Middleware that verifies login tokens.
+ * @param {import("mongodb").Collection} users - MongoDB users collection.
  * @returns {import("express").Router} The request router.
  */
-function createRequestRouter(requests, items, requireAuth) {
+function createRequestRouter(requests, items, requireAuth, users) {
   const router = express.Router();
   const statuses = ["Pending", "Accepted", "Rejected", "Returned"];
 
@@ -57,7 +58,35 @@ function createRequestRouter(requests, items, requireAuth) {
    * @access Private
    */
   router.get("/received", requireAuth, async (req, res) => {
-    res.json(await requests.find({ ownerId: req.userId }).sort({ createdAt: -1 }).toArray());
+    try {
+      const receivedRequests = await requests
+        .find({ ownerId: req.userId })
+        .sort({ createdAt: -1 })
+        .toArray();
+
+      const requestsWithNames = await Promise.all(
+        receivedRequests.map(async (request) => {
+          const borrower = users
+            ? await users.findOne(
+                { _id: request.borrowerId },
+                { projection: { name: 1, username: 1 } }
+              )
+            : null;
+          const item = await items.findOne({ _id: request.itemId });
+
+          return {
+            ...request,
+            borrowerName: borrower?.name || borrower?.username || "CampusShare user",
+            itemTitle: item?.title || "Requested Item"
+          };
+        })
+      );
+
+      res.json(requestsWithNames);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Could not load received requests." });
+    }
   });
 
   /**

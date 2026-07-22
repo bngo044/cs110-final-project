@@ -5,7 +5,7 @@ import { ArrowLeft, LoaderCircle, Package, Clock, CheckCircle2, XCircle, Repeat2
 import { Button } from "../components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card"
 
-export default function ProfilePage() {
+export default function UserListingsPage() {
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
 
@@ -37,14 +37,17 @@ export default function ProfilePage() {
         // Fetch personal items and incoming requests
         const [itemsRes, reqsRes] = await Promise.all([
           fetch("/api/items/my", { headers }),
-          fetch("/api/requests/owner", { headers }),
+          fetch("/api/requests/received", { headers }),
         ])
 
         const itemsData = await itemsRes.json()
         if (!itemsRes.ok) throw new Error(itemsData.message || "Could not load your listings.")
 
+        const requestsData = await reqsRes.json()
+        if (!reqsRes.ok) throw new Error(requestsData.message || "Could not load requests.")
+
         setMyItems(itemsData)
-        if (reqsRes.ok) setIncomingRequests(await reqsRes.json())
+        setIncomingRequests(requestsData)
       } catch (err) {
         setError(err.message)
       } finally {
@@ -77,8 +80,8 @@ export default function ProfilePage() {
   async function handleStatusUpdate(requestId, status) {
     try {
       const token = localStorage.getItem("campusShareToken")
-      await fetch(`/api/requests/${requestId}`, {
-        method: "PATCH",
+      const response = await fetch(`/api/requests/${requestId}/status`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -86,11 +89,14 @@ export default function ProfilePage() {
         body: JSON.stringify({ status }),
       })
 
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.message || "Could not update request.")
+
       setIncomingRequests((prev) =>
         prev.map((req) => (req._id === requestId ? { ...req, status } : req))
       )
     } catch (err) {
-      console.error(err)
+      setError(err.message)
     }
   }
 
@@ -112,6 +118,7 @@ export default function ProfilePage() {
           <ArrowLeft className="size-4" /> Back to Dashboard
         </Button>
 
+<<<<<<< HEAD:frontend-react/src/pages/Profile.jsx
         <Card className="mb-8 border bg-card">
           <CardContent className="flex flex-col sm:flex-row items-center gap-6 p-6">
             <div 
@@ -173,6 +180,9 @@ export default function ProfilePage() {
         </Card>
 
         <h1 className="text-3xl font-bold mb-8">My CampusShare Hub</h1>
+=======
+        <h1 className="text-3xl font-bold mb-8">My Listings and Requests</h1>
+>>>>>>> 4c0eadd7ba72b8cd24fdfe350c07198d54faea01:frontend-react/src/pages/UserListings.jsx
 
         {error && <p className="mb-6 text-sm text-destructive">{error}</p>}
 
@@ -195,17 +205,26 @@ export default function ProfilePage() {
                       <CardContent className="flex items-center justify-between p-4">
                         <div>
                           <p className="font-semibold text-sm">{req.itemTitle || "Requested Item"}</p>
+                          <p className="text-sm">
+                            Requested by{" "}
+                            <Link
+                              to={`/profiles/${req.borrowerId}`}
+                              className="font-medium text-primary underline underline-offset-2"
+                            >
+                              {req.borrowerName || "CampusShare user"}
+                            </Link>
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             Dates: {req.startDate} to {req.endDate} • Status: <strong className="capitalize">{req.status}</strong>
                           </p>
                         </div>
 
-                        {req.status === "pending" && (
+                        {req.status === "Pending" && (
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => handleStatusUpdate(req._id, "approved")}>
+                            <Button size="sm" onClick={() => handleStatusUpdate(req._id, "Accepted")}>
                               <CheckCircle2 className="size-4 mr-1" /> Approve
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(req._id, "rejected")}>
+                            <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(req._id, "Rejected")}>
                               <XCircle className="size-4 mr-1" /> Reject
                             </Button>
                           </div>
